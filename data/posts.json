@@ -1,0 +1,14 @@
+{
+  "posts": [
+    {
+      "id": "nuxt3-guide",
+      "title": "Nuxt 3 入门指南",
+      "date": "2023-03-10",
+      "image": "https://picsum.photos/seed/nuxt1/800/600",
+      "summary": "学习如何使用 Nuxt 3 构建现代化的 Vue.js 应用程序。",
+      "tags": ["Nuxt", "Vue.js", "前端开发"],
+      "category": "框架",
+      "content": "# Nuxt 3 入门指南\n\nNuxt 3 是一个强大的 Vue.js 框架，它提供了许多功能，使开发 Vue.js 应用程序变得更加简单和高效。\n\n## 为什么选择 Nuxt 3？\n\n1. **更好的性能**\n   - 基于 Vite 构建\n   - 支持混合渲染\n   - 自动代码分割\n\n2. **开发体验**\n   - 自动导入组件\n   - 文件系统路由\n   - TypeScript 支持\n\n3. **SEO 友好**\n   - 服务器端渲染\n   - 自动生成元标签\n   - 静态站点生成"
+    }
+  ]
+} 
