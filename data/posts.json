@@ -1,14 +1,48 @@
 {
   "posts": [
     {
-      "id": "nuxt3-guide",
+      "id": "1",
+      "slug": "getting-started-with-nuxt3",
       "title": "Nuxt 3 入门指南",
-      "date": "2023-03-10",
-      "image": "https://picsum.photos/seed/nuxt1/800/600",
-      "summary": "学习如何使用 Nuxt 3 构建现代化的 Vue.js 应用程序。",
-      "tags": ["Nuxt", "Vue.js", "前端开发"],
-      "category": "框架",
-      "content": "# Nuxt 3 入门指南\n\nNuxt 3 是一个强大的 Vue.js 框架，它提供了许多功能，使开发 Vue.js 应用程序变得更加简单和高效。\n\n## 为什么选择 Nuxt 3？\n\n1. **更好的性能**\n   - 基于 Vite 构建\n   - 支持混合渲染\n   - 自动代码分割\n\n2. **开发体验**\n   - 自动导入组件\n   - 文件系统路由\n   - TypeScript 支持\n\n3. **SEO 友好**\n   - 服务器端渲染\n   - 自动生成元标签\n   - 静态站点生成"
+      "date": "2024-03-15",
+      "content": "# Nuxt 3 入门指南\n\n## 什么是 Nuxt 3？\n\nNuxt 3 是一个基于 Vue 3 的全栈框架，它提供了许多开箱即用的功能，让开发变得更加简单和高效。\n\n## 主要特性\n\n### 1. 自动导入\n\nNuxt 3 提供了强大的自动导入功能，包括：\n- 组件自动导入\n- Composables 自动导入\n- API 函数自动导入\n\n### 2. 文件系统路由\n\n基于文件系统的路由让页面创建变得简单直观：\n```vue\npages/\n  index.vue\n  about.vue\n  posts/\n    [id].vue\n```\n\n### 3. 服务器组件\n\n使用服务器组件可以显著提升应用性能：\n```vue\n<script setup>\nconst { data } = await useFetch('/api/posts')\n</script>\n```\n\n## 开始使用\n\n### 安装\n\n使用以下命令创建新项目：\n```bash\nnpx nuxi init my-project\ncd my-project\nnpm install\n```\n\n### 开发\n\n运行开发服务器：\n```bash\nnpm run dev\n```",
+      "summary": "了解 Nuxt 3 的基础知识，包括安装、配置和主要特性的介绍。",
+      "image": "https://nuxt.com/assets/blog/v3.png",
+      "tags": ["Nuxt", "Vue", "JavaScript", "前端开发"],
+      "category": "框架"
+    },
+    {
+      "id": "2",
+      "slug": "tailwindcss-best-practices",
+      "title": "TailwindCSS 最佳实践指南",
+      "date": "2024-03-14",
+      "content": "# TailwindCSS 最佳实践指南\n\n## 为什么选择 TailwindCSS？\n\nTailwindCSS 是一个功能类优先的 CSS 框架，它提供了高度可定制的低级实用工具类，帮助你构建任何设计。\n\n## 核心概念\n\n### 1. 实用工具类优先\n\n使用实用工具类而不是编写自定义 CSS：\n```html\n<div class=\"p-4 mt-4 bg-white rounded-lg shadow-md\">\n  <h2 class=\"text-xl font-bold text-gray-800\">标题</h2>\n</div>\n```\n\n### 2. 响应式设计\n\n使用响应式前缀轻松实现响应式设计：\n```html\n<div class=\"w-full md:w-1/2 lg:w-1/3\">\n  <!-- 内容 -->\n</div>\n```\n\n### 3. 暗色模式\n\n使用 dark: 前缀支持暗色模式：\n```html\n<div class=\"bg-white dark:bg-gray-800 text-gray-900 dark:text-white\">\n  <!-- 内容 -->\n</div>\n```\n\n## 最佳实践\n\n### 1. 组件提取\n\n当发现重复的模式时，将其提取为组件：\n```vue\n<template>\n  <button class=\"px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600\">\n    <slot></slot>\n  </button>\n</template>\n```\n\n### 2. 使用 @apply\n\n在需要的时候使用 @apply 提取常用类：\n```css\n.btn-primary {\n  @apply px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600;\n}\n```",
+      "summary": "学习 TailwindCSS 的核心概念和最佳实践，提高开发效率。",
+      "image": "https://tailwindcss.com/img/card.jpg",
+      "tags": ["CSS", "TailwindCSS", "前端开发", "设计"],
+      "category": "样式"
+    },
+    {
+      "id": "3",
+      "slug": "typescript-advanced-tips",
+      "title": "TypeScript 高级技巧",
+      "date": "2024-03-13",
+      "content": "# TypeScript 高级技巧\n\n## 泛型进阶\n\n### 1. 条件类型\n\n使用条件类型实现更灵活的类型定义：\n```typescript\ntype IsArray<T> = T extends any[] ? true : false;\n\ntype WithArray = IsArray<string[]>; // true\ntype WithoutArray = IsArray<string>; // false\n```\n\n### 2. 映射类型\n\n使用映射类型转换已有类型：\n```typescript\ntype Readonly<T> = {\n  readonly [P in keyof T]: T[P];\n};\n\ninterface User {\n  name: string;\n  age: number;\n}\n\ntype ReadonlyUser = Readonly<User>;\n```\n\n## 高级特性\n\n### 1. 类型守卫\n\n使用类型守卫进行类型收窄：\n```typescript\nfunction isString(value: unknown): value is string {\n  return typeof value === 'string';\n}\n\nfunction processValue(value: unknown) {\n  if (isString(value)) {\n    console.log(value.toUpperCase());\n  }\n}\n```\n\n### 2. 工具类型\n\n使用内置工具类型：\n```typescript\ntype PartialUser = Partial<User>;\ntype PickNameAndAge = Pick<User, 'name' | 'age'>;\ntype OmitAge = Omit<User, 'age'>;\n```\n\n## 实践技巧\n\n### 1. 类型推断\n\n善用 TypeScript 的类型推断：\n```typescript\nconst numbers = [1, 2, 3]; // number[]\nconst user = {\n  name: 'John',\n  age: 30\n}; // { name: string; age: number }\n```\n\n### 2. 类型断言\n\n谨慎使用类型断言：\n```typescript\nconst myCanvas = document.getElementById('main_canvas') as HTMLCanvasElement;\n```",
+      "summary": "深入了解 TypeScript 的高级特性和使用技巧。",
+      "image": "https://www.typescriptlang.org/static/typescript-card-dark.png",
+      "tags": ["TypeScript", "JavaScript", "编程语言"],
+      "category": "编程语言"
+    },
+    {
+      "id": "4",
+      "slug": "vue3-composition-api",
+      "title": "Vue 3 组合式 API 实战",
+      "date": "2024-03-12",
+      "content": "# Vue 3 组合式 API 实战\n\n## 为什么使用组合式 API？\n\n组合式 API 提供了更好的代码组织方式和逻辑复用能力。\n\n## 核心概念\n\n### 1. ref 和 reactive\n\n管理响应式状态：\n```typescript\nimport { ref, reactive } from 'vue'\n\nconst count = ref(0)\nconst state = reactive({\n  name: 'John',\n  age: 30\n})\n```\n\n### 2. computed 和 watch\n\n处理响应式计算和监听：\n```typescript\nconst doubleCount = computed(() => count.value * 2)\n\nwatch(count, (newValue, oldValue) => {\n  console.log(`Count changed from ${oldValue} to ${newValue}`)\n})\n```\n\n### 3. 生命周期钩子\n\n使用生命周期钩子：\n```typescript\nonMounted(() => {\n  console.log('Component mounted')\n})\n\nonUnmounted(() => {\n  console.log('Component unmounted')\n})\n```\n\n## 实战技巧\n\n### 1. 逻辑复用\n\n创建可复用的组合式函数：\n```typescript\nfunction useCounter(initialValue = 0) {\n  const count = ref(initialValue)\n  \n  function increment() {\n    count.value++\n  }\n  \n  function decrement() {\n    count.value--\n  }\n  \n  return {\n    count,\n    increment,\n    decrement\n  }\n}\n```\n\n### 2. 异步处理\n\n处理异步操作：\n```typescript\nconst { data, error, loading } = useAsyncData(async () => {\n  const response = await fetch('/api/posts')\n  return response.json()\n})\n```",
+      "summary": "深入学习 Vue 3 组合式 API 的使用方法和最佳实践。",
+      "image": "https://blog.vuejs.org/images/vue-3.png",
+      "tags": ["Vue", "JavaScript", "前端开发"],
+      "category": "框架"
     }
   ]
 } 

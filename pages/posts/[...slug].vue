@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { marked } from 'marked';
+import { renderMarkdown } from '~/utils/markdown'
 import type { Post } from '~/types';
 
 const route = useRoute();
@@ -7,14 +7,19 @@ const slug = Array.isArray(route.params.slug)
   ? route.params.slug.join('/') 
   : route.params.slug;
 
-const { posts } = usePosts();
-const post = computed(() => posts.value.find(p => p.slug === slug));
+const { posts, getPostBySlug } = usePosts();
+const post = computed(() => getPostBySlug(slug));
 
 // 渲染Markdown内容
-const renderedContent = computed(() => {
-  if (!post.value?.content) return '';
-  return marked(post.value.content);
-});
+const renderedContent = ref('')
+
+watchEffect(async () => {
+  if (post.value?.content) {
+    renderedContent.value = await renderMarkdown(post.value.content)
+  } else {
+    renderedContent.value = ''
+  }
+})
 
 // 提取标题生成目录
 const headers = computed(() => {
@@ -79,6 +84,31 @@ const relatedPosts = computed(() => {
 if (!post.value) {
   navigateTo('/')
 }
+
+// 添加复制代码功能
+onMounted(() => {
+  const copyButtons = document.querySelectorAll('.copy-button')
+  copyButtons.forEach(button => {
+    button.addEventListener('click', async () => {
+      const code = decodeURIComponent((button as HTMLElement).dataset.code || '')
+      await navigator.clipboard.writeText(code)
+      
+      const originalText = button.innerHTML
+      button.innerHTML = `
+        已复制!
+        &lt;svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"&gt;
+          &lt;path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /&gt;
+        &lt;/svg&gt;
+      `
+      button.classList.add('text-green-500')
+      
+      setTimeout(() => {
+        button.innerHTML = originalText
+        button.classList.remove('text-green-500')
+      }, 2000)
+    })
+  })
+})
 </script>
 
 <template>
@@ -140,19 +170,51 @@ if (!post.value) {
         </nav>
 
         <!-- 相关文章 -->
-        <div v-if="relatedPosts.length > 0" class="mt-16 bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">相关文章</h3>
-          <ul class="space-y-4">
-            <li v-for="relatedPost in relatedPosts" :key="relatedPost.slug">
+        <div v-if="relatedPosts.length > 0" class="mt-16 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+          <h3 class="text-xl font-bold mb-6 text-gray-900 dark:text-gray-100">推荐阅读</h3>
+          <div class="grid gap-6 md:grid-cols-2">
+            <article v-for="relatedPost in relatedPosts" :key="relatedPost.slug" class="group">
               <NuxtLink
                 :to="`/posts/${relatedPost.slug}`"
-                class="block hover:text-primary-600 dark:hover:text-primary-400"
+                class="block space-y-3"
               >
-                <h4 class="font-medium">{{ relatedPost.title }}</h4>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ relatedPost.summary }}</p>
+                <div class="relative h-48 overflow-hidden rounded-lg">
+                  <img
+                    v-if="relatedPost.image"
+                    :src="relatedPost.image"
+                    :alt="relatedPost.title"
+                    class="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <div v-else class="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                    <span class="text-gray-400 dark:text-gray-500">无图片</span>
+                  </div>
+                </div>
+                <div class="space-y-2">
+                  <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                    <time :datetime="relatedPost.date">{{ formatDate(relatedPost.date) }}</time>
+                    <span v-if="relatedPost.category" class="px-2 py-1 text-xs rounded-full bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300">
+                      {{ relatedPost.category }}
+                    </span>
+                  </div>
+                  <h4 class="text-lg font-semibold text-gray-900 dark:text-gray-100 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+                    {{ relatedPost.title }}
+                  </h4>
+                  <p class="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
+                    {{ relatedPost.summary }}
+                  </p>
+                  <div class="flex flex-wrap gap-2">
+                    <span 
+                      v-for="tag in relatedPost.tags" 
+                      :key="tag"
+                      class="text-xs text-gray-500 dark:text-gray-400"
+                    >
+                      #{{ tag }}
+                    </span>
+                  </div>
+                </div>
               </NuxtLink>
-            </li>
-          </ul>
+            </article>
+          </div>
         </div>
       </div>
     </div>
@@ -160,68 +222,211 @@ if (!post.value) {
 </template>
 
 <style>
-/* 自定义滚动条样式 */
-.scrollbar-thin::-webkit-scrollbar {
-  width: 4px;
+/* VitePress 风格样式 */
+.prose {
+  --vp-c-text-1: #213547;
+  --vp-c-text-2: #476582;
+  --vp-c-bg-soft: #f9f9f9;
+  --vp-c-divider: #e2e2e2;
+  --vp-code-block-bg: #292d3e;
+  --vp-code-line-highlight-bg: rgba(0, 0, 0, 0.2);
+  --vp-code-line-number-color: #888;
+  --vp-code-copy-code-hover-bg: rgba(255, 255, 255, 0.05);
+  --vp-code-copy-code-active-text: #fff;
 }
 
-.scrollbar-thin::-webkit-scrollbar-track {
+.dark .prose {
+  --vp-c-text-1: #ffffff;
+  --vp-c-text-2: #a8b1bf;
+  --vp-c-bg-soft: #161618;
+  --vp-c-divider: #2e2e32;
+}
+
+.prose {
+  color: var(--vp-c-text-1);
+  max-width: none;
+}
+
+/* 标题样式 */
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4,
+.prose h5,
+.prose h6 {
+  color: var(--vp-c-text-1);
+  font-weight: 600;
+  line-height: 1.25;
+  margin-top: 2.5em;
+  margin-bottom: 1.5em;
+  position: relative;
+}
+
+.prose h1 {
+  font-size: 2.5em;
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.prose h2 {
+  font-size: 1.875em;
+  border-bottom: 1px solid var(--vp-c-divider);
+  padding-bottom: 0.5em;
+  margin-top: 2em;
+}
+
+.prose h3 {
+  font-size: 1.5em;
+}
+
+/* 代码块样式 */
+.prose .code-block {
+  background-color: var(--vp-code-block-bg);
+  border-radius: 8px;
+  margin: 1.5em 0;
+  position: relative;
+  overflow-x: auto;
+}
+
+.prose .code-block pre {
+  margin: 0;
+  padding: 1em 0;
+}
+
+.prose .code-block code {
+  display: block;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.875em;
+  line-height: 1.7;
+  padding: 0 1.5em;
+  color: #A6ACCD;
   background: transparent;
 }
 
-.scrollbar-thin::-webkit-scrollbar-thumb {
-  background-color: #E5E7EB;
-  border-radius: 2px;
-}
-
-.dark .scrollbar-thin::-webkit-scrollbar-thumb {
-  background-color: #374151;
-}
-
-/* 优化代码块样式 */
-.prose pre {
-  background-color: #1a1a1a !important;
-  border-radius: 0.5rem;
-  padding: 1.25rem !important;
-  margin: 1.5rem 0 !important;
-}
-
-.prose code {
-  color: #e2e8f0 !important;
-  background-color: #2d3748;
-  padding: 0.2em 0.4em;
-  border-radius: 0.25rem;
+/* 行内代码样式 */
+.prose :not(pre) > code {
+  font-family: 'Fira Code', monospace;
   font-size: 0.875em;
+  background-color: var(--vp-c-bg-soft);
+  color: var(--vp-c-text-2);
+  padding: 0.2em 0.4em;
+  border-radius: 4px;
+  word-break: break-word;
 }
 
-.prose pre code {
-  background-color: transparent;
-  padding: 0;
-  border-radius: 0;
-  color: inherit;
-}
-
-/* 优化引用块样式 */
+/* 引用块样式 */
 .prose blockquote {
-  border-left-color: #6366f1;
-  background-color: #f8fafc;
-  padding: 1rem 1.5rem;
-  border-radius: 0.5rem;
+  border-left: 4px solid #42b883;
+  padding: 1em 1.2em;
+  background-color: var(--vp-c-bg-soft);
+  border-radius: 0 4px 4px 0;
+  margin: 1.5em 0;
 }
 
-.dark .prose blockquote {
-  background-color: #1e293b;
-  border-left-color: #818cf8;
+.prose blockquote p {
+  margin: 0;
+  font-size: 1em;
+  color: var(--vp-c-text-2);
 }
 
-/* 优化链接样式 */
+/* 列表样式 */
+.prose ul,
+.prose ol {
+  padding-left: 1.5em;
+  margin: 1.5em 0;
+}
+
+.prose li {
+  margin: 0.5em 0;
+}
+
+.prose ul > li::before {
+  content: '';
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--vp-c-text-2);
+  transform: translateX(-1em) translateY(0.75em);
+}
+
+/* 表格样式 */
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5em 0;
+}
+
+.prose th,
+.prose td {
+  border: 1px solid var(--vp-c-divider);
+  padding: 0.75em 1em;
+}
+
+.prose th {
+  background-color: var(--vp-c-bg-soft);
+  font-weight: 600;
+}
+
+/* 链接样式 */
 .prose a {
+  color: #42b883;
   text-decoration: none;
-  border-bottom: 1px dashed currentColor;
-  transition: all 0.2s ease;
+  font-weight: 500;
+  transition: color 0.25s;
 }
 
 .prose a:hover {
-  border-bottom-style: solid;
+  color: #35495e;
 }
+
+.dark .prose a:hover {
+  color: #3eaf7c;
+}
+
+/* 图片样式 */
+.prose img {
+  border-radius: 8px;
+  margin: 1.5em 0;
+}
+
+/* 分割线样式 */
+.prose hr {
+  border: none;
+  border-top: 1px solid var(--vp-c-divider);
+  margin: 2em 0;
+}
+
+/* 代码块顶部栏 */
+.prose .code-block .flex {
+  background-color: rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.prose .code-block .copy-button {
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+
+.prose .code-block:hover .copy-button {
+  opacity: 1;
+}
+
+/* 自定义滚动条 */
+.prose pre::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.prose pre::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.prose pre::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* 移除 highlight.js 样式 */
+@import 'prismjs/themes/prism-tomorrow.css';
 </style> 

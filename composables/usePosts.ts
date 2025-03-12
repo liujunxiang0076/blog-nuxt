@@ -1,84 +1,93 @@
-import { ref, computed } from 'vue'
-import postsData from '~/data/posts.json'
+import { defineEventHandler } from 'h3'
+import { promises as fs } from 'fs'
+import { join } from 'path'
+import matter from 'gray-matter'
 import type { Post } from '~/types'
 
 export const usePosts = () => {
-  const posts = ref<Post[]>(postsData.posts)
+  const posts = useState<Post[]>('posts', () => [])
+  const loading = useState<boolean>('posts-loading', () => true)
+  const error = useState<string | null>('posts-error', () => null)
 
-  // 获取所有分类
-  const categories = computed(() => {
-    const categorySet = new Set(posts.value.map(post => post.category))
-    return Array.from(categorySet)
-  })
+  // 获取所有文章
+  const fetchPosts = async () => {
+    try {
+      loading.value = true
+      error.value = null
+      
+      // 读取 content/posts 目录下的所有 .md 文件
+      const postsDir = join(process.cwd(), 'content/posts')
+      const files = await fs.readdir(postsDir)
+      const markdownFiles = files.filter(file => file.endsWith('.md'))
+      
+      // 读取并解析每个文件
+      const allPosts = await Promise.all(
+        markdownFiles.map(async (file) => {
+          const filePath = join(postsDir, file)
+          const content = await fs.readFile(filePath, 'utf-8')
+          const { data, content: markdown } = matter(content)
+          
+          return {
+            ...data,
+            slug: file.replace(/\.md$/, ''),
+            content: markdown,
+          } as Post
+        })
+      )
+      
+      // 按日期排序
+      posts.value = allPosts.sort((a, b) => {
+        return new Date(b.date).getTime() - new Date(a.date).getTime()
+      })
+    } catch (e) {
+      console.error('Error fetching posts:', e)
+      error.value = e instanceof Error ? e.message : '获取文章失败'
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // 根据 slug 获取文章
+  const getPostBySlug = (slug: string) => {
+    return posts.value.find(post => post.slug === slug)
+  }
+
+  // 获取文章分类
+  const getCategories = () => {
+    const categories = new Set(posts.value.map(post => post.category).filter(Boolean))
+    return Array.from(categories)
+  }
 
   // 获取所有标签
-  const tags = computed(() => {
-    const tagSet = new Set(posts.value.flatMap(post => post.tags))
-    return Array.from(tagSet)
+  const getTags = () => {
+    const tags = new Set(posts.value.flatMap(post => post.tags || []))
+    return Array.from(tags)
+  }
+
+  // 根据分类获取文章
+  const getPostsByCategory = (category: string) => {
+    return posts.value.filter(post => post.category === category)
+  }
+
+  // 根据标签获取文章
+  const getPostsByTag = (tag: string) => {
+    return posts.value.filter(post => post.tags?.includes(tag))
+  }
+
+  // 初始加载
+  onMounted(() => {
+    fetchPosts()
   })
 
-  // 按分类获取文章
-  const getPostsByCategory = (category: string) => {
-    return computed(() => {
-      return posts.value.filter(post => post.category === category)
-    })
-  }
-
-  // 按标签获取文章
-  const getPostsByTag = (tag: string) => {
-    return computed(() => {
-      return posts.value.filter(post => post.tags.includes(tag))
-    })
-  }
-
-  // 搜索文章
-  const searchPosts = (query: string) => {
-    query = query.toLowerCase()
-    return posts.value.filter(post => 
-      post.title.toLowerCase().includes(query) ||
-      post.summary.toLowerCase().includes(query) ||
-      post.tags.some(tag => tag.toLowerCase().includes(query))
-    )
-  }
-
-  // 获取单篇文章
-  const getPost = (id: string) => {
-    return posts.value.find(post => post.id === id)
-  }
-
-  // 获取相关文章
-  const getRelatedPosts = (currentPost: Post, limit = 5) => {
-    const currentTags = new Set(currentPost.tags)
-    
-    return posts.value
-      .filter(post => post.id !== currentPost.id)
-      .map(post => {
-        let score = 0
-        
-        // 根据标签计算相关度
-        const commonTags = post.tags.filter(tag => currentTags.has(tag))
-        score += commonTags.length * 2
-        
-        // 相同分类加分
-        if (post.category === currentPost.category) {
-          score += 3
-        }
-        
-        return { ...post, score }
-      })
-      .filter(post => post.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, limit)
-  }
-
   return {
-    posts,
-    categories,
-    tags,
+    posts: readonly(posts),
+    loading: readonly(loading),
+    error: readonly(error),
+    getPostBySlug,
+    getCategories,
+    getTags,
     getPostsByCategory,
     getPostsByTag,
-    searchPosts,
-    getPost,
-    getRelatedPosts
+    refresh: fetchPosts
   }
 } 
