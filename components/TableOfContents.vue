@@ -18,7 +18,7 @@
 </template>
 
 <script setup lang="ts">
-import { Header } from '~/types';
+import type { Header } from '~/types';
 
 defineProps<{
   headers: Header[];
@@ -34,7 +34,12 @@ const slugify = (text: string) => {
 
 <style scoped>
 .toc {
-  @apply border-l-2 border-gray-200 dark:border-gray-700 pl-4;
+  border-left: 2px solid #e5e7eb;
+  padding-left: 1rem;
+}
+
+.dark .toc {
+  border-color: #374151;
 }
 
 .toc a {
@@ -55,6 +60,6 @@ const slugify = (text: string) => {
 }
 
 .toc a:hover::before {
-  @apply bg-primary-500;
+  background-color: #6366f1;
 }
 </style> 

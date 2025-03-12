@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { marked } from 'marked'
-import { usePosts, type Post } from '~/composables/usePosts'
+import type { Post } from '~/types'
+import { usePosts } from '~/composables/usePosts'
 
 const route = useRoute()
 const { getPost, getRelatedPosts } = usePosts()
@@ -15,20 +16,26 @@ const renderedContent = computed(() => {
   return marked(post.value.content)
 })
 
+interface HeadingToken {
+  type: 'heading';
+  text: string;
+  depth: number;
+}
+
 // 生成目录
 const toc = computed(() => {
-  if (!post.value) return { links: [] }
+  if (!post.value) return { headers: [] }
   
   const tokens = marked.lexer(post.value.content)
-  const links = tokens
+  const headers = tokens
     .filter(token => token.type === 'heading')
     .map(token => ({
-      id: token.text.toLowerCase().replace(/\s+/g, '-'),
-      text: token.text,
-      depth: token.depth
+      id: (token as HeadingToken).text.toLowerCase().replace(/\s+/g, '-'),
+      title: (token as HeadingToken).text,
+      level: (token as HeadingToken).depth
     }))
   
-  return { links }
+  return { headers }
 })
 
 // 格式化日期
@@ -99,7 +106,7 @@ if (!post.value) {
       <aside class="lg:col-span-4">
         <div class="sticky top-24 space-y-8">
           <!-- 目录导航 -->
-          <TableOfContents :toc="toc" />
+          <TableOfContents :headers="toc.headers" />
 
           <!-- 相关文章 -->
           <div v-if="relatedPosts.length > 0" class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">

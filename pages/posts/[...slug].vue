@@ -23,7 +23,7 @@ const headers = computed(() => {
   return lines
     .filter(line => line.startsWith('#'))
     .map(line => {
-      const level = line.match(/^#+/)[0].length;
+      const level = line.match(/^#+/)?.[0]?.length ?? 1;
       const title = line.replace(/^#+\s+/, '');
       return { level, title };
     });
@@ -35,7 +35,8 @@ const prevPost = computed(() => currentIndex.value > 0 ? posts.value[currentInde
 const nextPost = computed(() => currentIndex.value < posts.value.length - 1 ? posts.value[currentIndex.value + 1] : null);
 
 // 格式化日期
-const formatDate = (date: string) => {
+const formatDate = (date?: string) => {
+  if (!date) return '';
   return new Date(date).toLocaleDateString('zh-CN', {
     year: 'numeric',
     month: 'long',
@@ -44,9 +45,7 @@ const formatDate = (date: string) => {
 };
 
 // 获取所有文章用于导航和相关文章推荐
-const { data: postsAll } = await useAsyncData('posts', () =>
-  queryContent('posts').sort({ date: -1 }).find()
-)
+const postsAll = posts;
 
 // 相关文章推荐算法
 const relatedPosts = computed(() => {
@@ -56,7 +55,7 @@ const relatedPosts = computed(() => {
   const currentCategory = post.value.category
 
   return postsAll.value
-    .filter(p => p._path !== post.value._path) // 排除当前文章
+    .filter(p => p.slug !== post.value?.slug) // 排除当前文章
     .map(p => {
       let score = 0
       
@@ -144,9 +143,9 @@ if (!post.value) {
         <div v-if="relatedPosts.length > 0" class="mt-16 bg-white dark:bg-gray-800 rounded-lg shadow p-6">
           <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">相关文章</h3>
           <ul class="space-y-4">
-            <li v-for="relatedPost in relatedPosts" :key="relatedPost._path">
+            <li v-for="relatedPost in relatedPosts" :key="relatedPost.slug">
               <NuxtLink
-                :to="relatedPost._path"
+                :to="`/posts/${relatedPost.slug}`"
                 class="block hover:text-primary-600 dark:hover:text-primary-400"
               >
                 <h4 class="font-medium">{{ relatedPost.title }}</h4>

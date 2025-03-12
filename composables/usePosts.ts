@@ -1,16 +1,6 @@
 import { ref, computed } from 'vue'
 import postsData from '~/data/posts.json'
-
-export interface Post {
-  id: string
-  title: string
-  date: string
-  image: string
-  summary: string
-  tags: string[]
-  category: string
-  content: string
-}
+import type { Post } from '~/types'
 
 export const usePosts = () => {
   const posts = ref<Post[]>(postsData.posts)
