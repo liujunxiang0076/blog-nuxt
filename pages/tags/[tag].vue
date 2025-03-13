@@ -3,7 +3,12 @@ import { computed } from '#imports'
 import { usePosts } from '~/composables/usePosts'
 
 const route = useRoute()
-const { tags } = usePosts()
+const { posts } = usePosts()
+
+const tags = computed(() => {
+  const allTags = new Set(posts.value.flatMap(post => post.tags || []))
+  return Array.from(allTags)
+})
 
 // 验证标签是否存在
 const tag = computed(() => {

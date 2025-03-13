@@ -7,7 +7,7 @@
     "moduleResolution": "Node",
     "strict": true,
     "skipLibCheck": true,
-    "types": ["@nuxt/types", "@types/node", "vue/runtime-core"],
+    "types": ["@nuxt/types", "@types/node"],
     "paths": {
       "#imports": ["./.nuxt/imports"],
       "#vue": ["./node_modules/vue"],

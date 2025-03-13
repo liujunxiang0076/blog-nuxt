@@ -64,11 +64,11 @@ const searchInput = ref<HTMLInputElement | null>(null)
 
 const { posts } = usePosts()
 
-const filteredResults = computed<Post[]>(() => {
+const filteredResults = computed(() => {
   const query = searchQuery.value.trim().toLowerCase()
   if (!query) return []
   
-  return posts.value
+  return (posts.value as Post[])
     .filter(post => {
       const title = post.title.toLowerCase()
       const summary = post.summary?.toLowerCase() || ''

@@ -1,7 +1,13 @@
 <script setup lang="ts">
 import { usePosts } from '~/composables/usePosts'
+import { computed } from 'vue'
 
-const { categories, getPostsByCategory } = usePosts()
+const { posts, getPostsByCategory } = usePosts()
+
+const categories = computed(() => {
+  const uniqueCategories = new Set(posts.value.map(post => post.category).filter((cat): cat is string => !!cat))
+  return Array.from(uniqueCategories)
+})
 </script>
 
 <template>
@@ -15,7 +21,7 @@ const { categories, getPostsByCategory } = usePosts()
         >
           <span class="text-gray-700 dark:text-gray-300">{{ category }}</span>
           <span class="px-2 py-1 text-xs rounded-full bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300">
-            {{ getPostsByCategory(category).value.length }}
+            {{ getPostsByCategory(category).length }}
           </span>
         </NuxtLink>
       </li>

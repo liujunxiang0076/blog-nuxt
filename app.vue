@@ -4,7 +4,7 @@
       <div class="container mx-auto px-4 h-16">
         <div class="flex justify-between items-center h-full">
           <NuxtLink to="/" class="text-xl font-bold text-primary-600 dark:text-primary-400">
-            我的博客
+            Nuxt Test Project
           </NuxtLink>
           
           <nav class="flex items-center space-x-8">

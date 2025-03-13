@@ -11,10 +11,10 @@ const props = defineProps<{
 
 const filteredPosts = computed(() => {
   if (props.category) {
-    return getPostsByCategory(props.category).value
+    return getPostsByCategory(props.category)
   }
   if (props.tag) {
-    return getPostsByTag(props.tag).value
+    return getPostsByTag(props.tag)
   }
   return posts.value
 })
@@ -24,10 +24,10 @@ const filteredPosts = computed(() => {
   <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
     <article
       v-for="post in filteredPosts"
-      :key="post.id"
+      :key="post.slug"
       class="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300"
     >
-      <NuxtLink :to="`/posts/${post.id}`">
+      <NuxtLink :to="`/posts/${post.slug}`">
         <img
           :src="post.image"
           :alt="post.title"

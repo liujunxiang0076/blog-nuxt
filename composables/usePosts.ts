@@ -1,7 +1,3 @@
-import { defineEventHandler } from 'h3'
-import { promises as fs } from 'fs'
-import { join } from 'path'
-import matter from 'gray-matter'
 import type { Post } from '~/types'
 
 export const usePosts = () => {
@@ -15,30 +11,8 @@ export const usePosts = () => {
       loading.value = true
       error.value = null
       
-      // 读取 content/posts 目录下的所有 .md 文件
-      const postsDir = join(process.cwd(), 'content/posts')
-      const files = await fs.readdir(postsDir)
-      const markdownFiles = files.filter(file => file.endsWith('.md'))
-      
-      // 读取并解析每个文件
-      const allPosts = await Promise.all(
-        markdownFiles.map(async (file) => {
-          const filePath = join(postsDir, file)
-          const content = await fs.readFile(filePath, 'utf-8')
-          const { data, content: markdown } = matter(content)
-          
-          return {
-            ...data,
-            slug: file.replace(/\.md$/, ''),
-            content: markdown,
-          } as Post
-        })
-      )
-      
-      // 按日期排序
-      posts.value = allPosts.sort((a, b) => {
-        return new Date(b.date).getTime() - new Date(a.date).getTime()
-      })
+      const data = await $fetch<Post[]>('/api/posts')
+      posts.value = data
     } catch (e) {
       console.error('Error fetching posts:', e)
       error.value = e instanceof Error ? e.message : '获取文章失败'
@@ -74,10 +48,16 @@ export const usePosts = () => {
     return posts.value.filter(post => post.tags?.includes(tag))
   }
 
-  // 初始加载
-  onMounted(() => {
+  // 初始化数据
+  if (process.server) {
     fetchPosts()
-  })
+  } else {
+    onMounted(() => {
+      if (posts.value.length === 0) {
+        fetchPosts()
+      }
+    })
+  }
 
   return {
     posts: readonly(posts),

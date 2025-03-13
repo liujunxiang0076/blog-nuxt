@@ -5,7 +5,8 @@ export default defineNuxtConfig({
   modules: ['@nuxtjs/tailwindcss', '@nuxtjs/color-mode'],
   css: [
     '~/assets/css/main.css',
-    '~/assets/css/markdown.css'
+    '~/assets/css/markdown.css',
+    'prismjs/themes/prism-tomorrow.css'
   ],
   colorMode: {
     classSuffix: '',

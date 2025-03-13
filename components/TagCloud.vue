@@ -1,7 +1,13 @@
 <script setup lang="ts">
 import { usePosts } from '~/composables/usePosts'
+import { computed } from 'vue'
 
-const { tags } = usePosts()
+const { posts } = usePosts()
+
+const tags = computed(() => {
+  const allTags = new Set(posts.value.flatMap(post => post.tags || []))
+  return Array.from(allTags)
+})
 </script>
 
 <template>

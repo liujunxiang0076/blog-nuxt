@@ -3,7 +3,12 @@ import { computed } from '#imports'
 import { usePosts } from '~/composables/usePosts'
 
 const route = useRoute()
-const { categories } = usePosts()
+const { posts } = usePosts()
+
+const categories = computed(() => {
+  const uniqueCategories = new Set(posts.value.map(post => post.category).filter((cat): cat is string => !!cat))
+  return Array.from(uniqueCategories)
+})
 
 // 验证分类是否存在
 const category = computed(() => {

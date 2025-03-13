@@ -1,113 +1,141 @@
 <script setup lang="ts">
+import { ref, computed, watchEffect, onMounted } from 'vue'
 import { renderMarkdown } from '~/utils/markdown'
-import type { Post } from '~/types';
+import type { Post } from '~/types'
 
-const route = useRoute();
-const slug = Array.isArray(route.params.slug) 
-  ? route.params.slug.join('/') 
-  : route.params.slug;
+// 路由参数处理
+const route = useRoute()
+const slug = computed(() => 
+  Array.isArray(route.params.slug) 
+    ? route.params.slug.join('/') 
+    : route.params.slug as string
+)
 
-const { posts, getPostBySlug } = usePosts();
-const post = computed(() => getPostBySlug(slug));
+// 文章数据处理
+const { posts, getPostBySlug, loading } = usePosts()
+const post = computed(() => getPostBySlug(slug.value))
 
-// 渲染Markdown内容
+// Markdown 渲染
 const renderedContent = ref('')
+const renderError = ref<Error | null>(null)
 
+// 监听文章内容变化并渲染
 watchEffect(async () => {
-  if (post.value?.content) {
-    renderedContent.value = await renderMarkdown(post.value.content)
-  } else {
+  try {
+    if (post.value?.content) {
+      renderedContent.value = await renderMarkdown(post.value.content)
+    } else {
+      renderedContent.value = ''
+    }
+    renderError.value = null
+  } catch (err) {
+    console.error('渲染 Markdown 失败:', err)
+    renderError.value = err instanceof Error ? err : new Error('渲染失败')
     renderedContent.value = ''
   }
 })
 
-// 提取标题生成目录
-const headers = computed(() => {
-  if (!post.value?.content) return [];
-  const lines = post.value.content.split('\n');
+// 文章目录生成
+interface Header {
+  level: number
+  title: string
+}
+
+const headers = computed<Header[]>(() => {
+  if (!post.value?.content) return []
+  const lines = post.value.content.split('\n')
   return lines
     .filter(line => line.startsWith('#'))
     .map(line => {
-      const level = line.match(/^#+/)?.[0]?.length ?? 1;
-      const title = line.replace(/^#+\s+/, '');
-      return { level, title };
-    });
-});
+      const level = line.match(/^#+/)?.[0]?.length ?? 1
+      const title = line.replace(/^#+\s+/, '')
+      return { level, title }
+    })
+})
 
-// 上一篇/下一篇文章
-const currentIndex = computed(() => posts.value.findIndex(p => p.slug === slug));
-const prevPost = computed(() => currentIndex.value > 0 ? posts.value[currentIndex.value - 1] : null);
-const nextPost = computed(() => currentIndex.value < posts.value.length - 1 ? posts.value[currentIndex.value + 1] : null);
+// 上一篇/下一篇文章导航
+const currentIndex = computed(() => posts.value.findIndex(p => p.slug === slug.value))
+const prevPost = computed(() => currentIndex.value > 0 ? posts.value[currentIndex.value - 1] : null)
+const nextPost = computed(() => currentIndex.value < posts.value.length - 1 ? posts.value[currentIndex.value + 1] : null)
 
-// 格式化日期
+// 日期格式化
 const formatDate = (date?: string) => {
-  if (!date) return '';
+  if (!date) return ''
   return new Date(date).toLocaleDateString('zh-CN', {
     year: 'numeric',
     month: 'long',
     day: 'numeric'
-  });
-};
+  })
+}
 
-// 获取所有文章用于导航和相关文章推荐
-const postsAll = posts;
+// 相关文章推荐
+interface PostWithScore extends Post {
+  score: number
+}
 
-// 相关文章推荐算法
 const relatedPosts = computed(() => {
-  if (!post.value || !postsAll.value) return []
+  if (!post.value || !posts.value) return []
   
   const currentTags = new Set(post.value.tags || [])
   const currentCategory = post.value.category
 
-  return postsAll.value
-    .filter(p => p.slug !== post.value?.slug) // 排除当前文章
+  return posts.value
+    .filter(p => p.slug !== post.value?.slug)
     .map(p => {
       let score = 0
-      
-      // 根据标签计算相关度
       const commonTags = (p.tags || []).filter(tag => currentTags.has(tag))
-      score += commonTags.length * 2 // 每个共同标签加2分
-      
-      // 相同分类加分
-      if (p.category === currentCategory) {
-        score += 3 // 相同分类加3分
-      }
-      
+      score += commonTags.length * 2
+      if (p.category === currentCategory) score += 3
       return { ...p, score }
     })
-    .filter(p => p.score > 0) // 只保留有相关度的文章
-    .sort((a, b) => b.score - a.score) // 按相关度排序
-    .slice(0, 5) // 只取前5篇
+    .filter((p): p is PostWithScore => p.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5)
 })
 
-// 如果文章不存在，重定向到首页
-if (!post.value) {
-  navigateTo('/')
-}
+// 文章不存在时重定向
+watchEffect(() => {
+  if (!loading.value && !post.value) {
+    navigateTo('/')
+  }
+})
 
-// 添加复制代码功能
-onMounted(() => {
+// 代码复制功能
+const initializeCodeCopy = () => {
   const copyButtons = document.querySelectorAll('.copy-button')
   copyButtons.forEach(button => {
     button.addEventListener('click', async () => {
       const code = decodeURIComponent((button as HTMLElement).dataset.code || '')
-      await navigator.clipboard.writeText(code)
-      
-      const originalText = button.innerHTML
-      button.innerHTML = `
-        已复制!
-        &lt;svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"&gt;
-          &lt;path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /&gt;
-        &lt;/svg&gt;
-      `
-      button.classList.add('text-green-500')
-      
-      setTimeout(() => {
-        button.innerHTML = originalText
-        button.classList.remove('text-green-500')
-      }, 2000)
+      try {
+        await navigator.clipboard.writeText(code)
+        const originalText = button.innerHTML
+        button.innerHTML = '已复制!'
+        button.classList.add('text-green-500')
+        
+        setTimeout(() => {
+          button.innerHTML = originalText
+          button.classList.remove('text-green-500')
+        }, 2000)
+      } catch (error) {
+        console.error('复制失败:', error)
+      }
     })
   })
+}
+
+// 初始化代码高亮
+const initializeCodeHighlight = () => {
+  const { $prism } = useNuxtApp()
+  if ($prism) {
+    setTimeout(() => {
+      ;($prism as any).highlightAll()
+    }, 100)
+  }
+}
+
+onMounted(() => {
+  initializeCodeCopy()
+  initializeCodeHighlight()
 })
 </script>
 
@@ -123,7 +151,22 @@ onMounted(() => {
           返回首页
         </NuxtLink>
 
-        <div class="flex gap-8">
+        <!-- 加载状态 -->
+        <div v-if="loading" class="flex justify-center items-center min-h-[400px]">
+          <div class="animate-spin rounded-full h-12 w-12 border-4 border-primary-500 border-t-transparent"></div>
+        </div>
+
+        <!-- 文章不存在提示 -->
+        <div v-else-if="!post" class="flex flex-col items-center justify-center min-h-[400px]">
+          <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">文章不存在</h2>
+          <p class="text-gray-600 dark:text-gray-400 mb-8">抱歉，您访问的文章不存在或已被删除</p>
+          <NuxtLink to="/" class="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors">
+            返回首页
+          </NuxtLink>
+        </div>
+
+        <!-- 文章内容 -->
+        <div v-else class="flex gap-8">
           <!-- 主要内容区 -->
           <article class="flex-1 prose prose-lg dark:prose-invert max-w-4xl prose-headings:text-gray-900 dark:prose-headings:text-gray-100 prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-a:text-primary-600 dark:prose-a:text-primary-400 hover:prose-a:text-primary-500 prose-img:rounded-lg prose-pre:bg-gray-800 dark:prose-pre:bg-gray-950">
             <h1 class="mb-4 text-4xl font-bold tracking-tight">{{ post?.title }}</h1>
